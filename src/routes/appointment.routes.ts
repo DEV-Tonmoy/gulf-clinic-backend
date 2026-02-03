@@ -4,24 +4,9 @@ import { PrismaClient } from "@prisma/client";
 const router = Router();
 const prisma = new PrismaClient();
 
-router.get("/", async (req, res) => {
-  const appointments = await prisma.appointmentRequest.findMany({
-    orderBy: { createdAt: "desc" },
-  });
-
-  res.json(appointments);
-});
-
-
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const {
-      fullName,
-      phone,
-      email,
-      message,
-      preferredDate,
-    } = req.body;
+    const { fullName, phone, email, message } = req.body;
 
     const appointment = await prisma.appointmentRequest.create({
       data: {
@@ -29,9 +14,6 @@ router.post("/", async (req: Request, res: Response) => {
         phone,
         email,
         message,
-        preferredDate: preferredDate
-          ? new Date(preferredDate)
-          : null,
       },
     });
 
