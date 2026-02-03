@@ -3,18 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
-  "dev": "ts-node-dev src/server.ts",
-  "build": "tsc",
-  "start": "node dist/server.js",
-  "postinstall": "prisma generate"
-}
-
+  "type": "commonjs",
+  "scripts": {
+    "dev": "ts-node-dev src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
