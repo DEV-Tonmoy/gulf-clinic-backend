@@ -6,3 +6,20 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model AppointmentRequest {
+  id            String   @id @default(uuid())
+  fullName      String
+  phone         String
+  email         String?
+  message       String?
+  preferredDate DateTime?
+  status        AppointmentStatus @default(NEW)
+  createdAt     DateTime @default(now())
+}
+
+enum AppointmentStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
