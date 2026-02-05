@@ -8,19 +8,33 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const { fullName, phone, email, message } = req.body;
 
+    // Basic required field validation
+    if (!fullName || !phone) {
+      return res.status(400).json({
+        error: "fullName and phone are required",
+      });
+    }
+
     const appointment = await prisma.appointmentRequest.create({
       data: {
         fullName,
         phone,
-        email,
-        message,
+        email: email ?? null,
+        message: message ?? null,
       },
     });
 
-    res.status(201).json(appointment);
+    // Public-safe response (no internal fields)
+    return res.status(201).json({
+      id: appointment.id,
+      status: appointment.status,
+      createdAt: appointment.createdAt,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to create appointment" });
+    console.error("Failed to create appointment:", error);
+    return res.status(500).json({
+      error: "Failed to create appointment",
+    });
   }
 });
 

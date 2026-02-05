@@ -7,19 +7,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =========================
+// APPOINTMENT REQUESTS
+// =========================
+
 model AppointmentRequest {
-  id            String   @id @default(uuid())
+  id            String            @id @default(uuid())
   fullName      String
   phone         String
   email         String?
   message       String?
   preferredDate DateTime?
   status        AppointmentStatus @default(NEW)
-  createdAt     DateTime @default(now())
+  adminNotes    String?
+  createdAt     DateTime          @default(now())
 }
+
+// =========================
+// ADMINS
+// =========================
+
+model Admin {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String
+  role                AdminRole @default(ADMIN)
+  isActive            Boolean   @default(true)
+
+  // Login security
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  activityLogs        AdminActivityLog[]
+}
+
+// =========================
+// ADMIN ACTIVITY LOGS
+// =========================
+
+model AdminActivityLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  targetId  String?
+  createdAt DateTime @default(now())
+
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+// =========================
+// ENUMS
+// =========================
 
 enum AppointmentStatus {
   NEW
   CONTACTED
   CLOSED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
 }
