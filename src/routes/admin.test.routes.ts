@@ -13,7 +13,28 @@ const router = Router();
 const prisma = new PrismaClient();
 
 /**
- * GET /admin/appointments
+ * GET /test
+ * Final URL: /admin/test
+ * Purpose: Verify admin auth, cookie handling, and req.admin
+ */
+router.get(
+  "/test",
+  requireAdmin,
+  (req: Request, res: Response) => {
+    return res.status(200).json({
+      message: "Admin authenticated",
+      admin: {
+        id: req.admin!.id,
+        email: req.admin!.email,
+        role: req.admin!.role,
+      },
+    });
+  }
+);
+
+/**
+ * GET /appointments
+ * Final URL: /admin/appointments
  * Roles: ADMIN, SUPER_ADMIN
  */
 router.get(
@@ -60,9 +81,9 @@ router.get(
 );
 
 /**
- * PATCH /admin/appointments/:id/status
+ * PATCH /appointments/:id/status
+ * Final URL: /admin/appointments/:id/status
  * Roles: ADMIN, SUPER_ADMIN
- * Enforces status transition rules
  */
 router.patch(
   "/appointments/:id/status",
@@ -85,11 +106,9 @@ router.patch(
         return res.status(404).json({ message: "Appointment not found" });
       }
 
-      const currentStatus = appointment.status;
-
-      if (!isValidStatusTransition(currentStatus, nextStatus)) {
+      if (!isValidStatusTransition(appointment.status, nextStatus)) {
         return res.status(400).json({
-          message: `Invalid status transition from ${currentStatus} to ${nextStatus}`,
+          message: `Invalid status transition from ${appointment.status} to ${nextStatus}`,
         });
       }
 
@@ -113,7 +132,8 @@ router.patch(
 );
 
 /**
- * PATCH /admin/appointments/:id/notes
+ * PATCH /appointments/:id/notes
+ * Final URL: /admin/appointments/:id/notes
  * Roles: SUPER_ADMIN ONLY
  */
 router.patch(

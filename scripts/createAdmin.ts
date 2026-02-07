@@ -6,18 +6,30 @@ const prisma = new PrismaClient();
 async function main() {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
+  const roleRaw = process.env.ADMIN_ROLE;
 
-  if (!email || !password) {
-    throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set");
+  if (!email || !password || !roleRaw) {
+    throw new Error(
+      "ADMIN_EMAIL, ADMIN_PASSWORD, and ADMIN_ROLE must all be set"
+    );
   }
+
+  if (!Object.values(AdminRole).includes(roleRaw as AdminRole)) {
+    throw new Error(
+      `Invalid ADMIN_ROLE value: "${roleRaw}". Valid values are: ${Object.values(
+        AdminRole
+      ).join(", ")}`
+    );
+  }
+
+  const role = roleRaw as AdminRole;
 
   const existingAdmin = await prisma.admin.findUnique({
     where: { email },
   });
 
   if (existingAdmin) {
-    console.log("Admin already exists");
-    return;
+    throw new Error(`Admin with email ${email} already exists`);
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -26,16 +38,17 @@ async function main() {
     data: {
       email,
       passwordHash,
-      role: AdminRole.SUPER_ADMIN,
+      role,
     },
   });
 
-  console.log("Admin created successfully");
+  console.log(`Admin created successfully with role: ${role}`);
 }
 
 main()
   .catch((err) => {
-    console.error(err);
+    console.error("❌ Admin creation failed:");
+    console.error(err.message);
     process.exit(1);
   })
   .finally(async () => {
