@@ -3,6 +3,7 @@ import { AdminRole } from "@prisma/client";
 
 export function authorizeRoles(allowedRoles: AdminRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
+    // req.admin is now recognized thanks to the global declaration in the middleware
     const admin = req.admin;
 
     if (!admin) {

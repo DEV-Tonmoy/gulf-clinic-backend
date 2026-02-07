@@ -1,40 +1,44 @@
 import { Router, Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { appointmentRequestSchema } from "../validators"; // Updated to point to your single file
+import { publicIntakeRateLimit } from "../middleware/publicRateLimit";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/request", publicIntakeRateLimit, async (req: Request, res: Response) => {
   try {
-    const { fullName, phone, email, message } = req.body;
-
-    // Basic required field validation
-    if (!fullName || !phone) {
-      return res.status(400).json({
-        error: "fullName and phone are required",
+    const validation = appointmentRequestSchema.safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ 
+        message: "Validation failed", 
+        errors: validation.error.format() 
       });
     }
 
-    const appointment = await prisma.appointmentRequest.create({
+    const { fullName, phone, email, preferredDate, message } = validation.data;
+
+    const newRequest = await prisma.appointmentRequest.create({
       data: {
         fullName,
         phone,
-        email: email ?? null,
-        message: message ?? null,
+        email,
+        preferredDate: preferredDate ? new Date(preferredDate) : null,
+        message,
+        status: "NEW", 
       },
     });
 
-    // Public-safe response (no internal fields)
     return res.status(201).json({
-      id: appointment.id,
-      status: appointment.status,
-      createdAt: appointment.createdAt,
+      message: "Appointment request submitted successfully.",
+      referenceId: newRequest.id,
+      status: newRequest.status
     });
+
   } catch (error) {
-    console.error("Failed to create appointment:", error);
-    return res.status(500).json({
-      error: "Failed to create appointment",
-    });
+    console.error("Public Appointment Intake Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
