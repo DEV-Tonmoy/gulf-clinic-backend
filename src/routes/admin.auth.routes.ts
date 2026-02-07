@@ -10,6 +10,7 @@ const prisma = new PrismaClient();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_TIME_MS = 30 * 60 * 1000; // 30 minutes
 
+// POST /admin/login
 router.post(
   "/login",
   adminLoginRateLimit,
@@ -27,11 +28,12 @@ router.post(
         where: { email },
       });
 
+      // Check if admin exists and is active
       if (!admin || !admin.isActive) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Check lock
+      // Check if account is locked
       if (admin.lockedUntil && admin.lockedUntil > new Date()) {
         return res.status(423).json({
           message: "Account temporarily locked. Try again later.",
@@ -43,10 +45,9 @@ router.post(
         admin.passwordHash
       );
 
-      // ❌ Wrong password
+      // Handle failed password match
       if (!passwordMatch) {
         const failedAttempts = admin.failedLoginAttempts + 1;
-
         const updateData: any = {
           failedLoginAttempts: failedAttempts,
         };
@@ -65,7 +66,7 @@ router.post(
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // ✅ Successful login → reset counters
+      // Success: Reset counters
       await prisma.admin.update({
         where: { id: admin.id },
         data: {
@@ -80,7 +81,7 @@ router.post(
         httpOnly: true,
         sameSite: "strict",
         secure: process.env.NODE_ENV === "production",
-        maxAge: 1000 * 60 * 60 * 24,
+        maxAge: 1000 * 60 * 60 * 24, // 24 hours
       });
 
       return res.json({ message: "Login successful" });
@@ -90,5 +91,15 @@ router.post(
     }
   }
 );
+
+// POST /admin/logout
+router.post("/logout", (req, res) => {
+  res.clearCookie("admin_token", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  });
+  return res.json({ message: "Logged out successfully" });
+});
 
 export default router;
