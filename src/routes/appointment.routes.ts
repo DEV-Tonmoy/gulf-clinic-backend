@@ -1,23 +1,17 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { PrismaClient } from "@prisma/client";
-import { appointmentRequestSchema } from "../validators"; // Updated to point to your single file
+import { appointmentRequestSchema } from "../validators";
 import { publicIntakeRateLimit } from "../middleware/publicRateLimit";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-router.post("/request", publicIntakeRateLimit, async (req: Request, res: Response) => {
+router.post("/request", publicIntakeRateLimit, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const validation = appointmentRequestSchema.safeParse(req.body);
-    
-    if (!validation.success) {
-      return res.status(400).json({ 
-        message: "Validation failed", 
-        errors: validation.error.format() 
-      });
-    }
+    // This will throw a ZodError automatically if validation fails
+    const validatedData = appointmentRequestSchema.parse(req.body);
 
-    const { fullName, phone, email, preferredDate, message } = validation.data;
+    const { fullName, phone, email, preferredDate, message } = validatedData;
 
     const newRequest = await prisma.appointmentRequest.create({
       data: {
@@ -37,8 +31,8 @@ router.post("/request", publicIntakeRateLimit, async (req: Request, res: Respons
     });
 
   } catch (error) {
-    console.error("Public Appointment Intake Error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    // Sends the error to our new Global Error Handler
+    next(error);
   }
 });
 

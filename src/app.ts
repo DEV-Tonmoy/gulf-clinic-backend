@@ -8,6 +8,7 @@ import healthRouter from "./routes/health.route";
 import appointmentRoutes from "./routes/appointment.routes";
 import adminAuthRoutes from "./routes/admin.auth.routes";
 import adminTestRoutes from "./routes/admin.test.routes";
+import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
 
@@ -41,5 +42,9 @@ app.use("/health", healthRouter);
 app.use("/appointments", appointmentRoutes);
 app.use("/admin", adminAuthRoutes);
 app.use("/admin", adminTestRoutes);
+
+// 3. Global Error Handler (MUST BE LAST)
+// This catches all errors passed from next(error) in your routes
+app.use(errorHandler);
 
 export default app;
