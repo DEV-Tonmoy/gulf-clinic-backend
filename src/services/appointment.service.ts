@@ -1,12 +1,29 @@
-import { PrismaClient, AppointmentStatus } from "@prisma/client";
+import { PrismaClient, AppointmentStatus, Prisma } from "@prisma/client";
 import { isValidStatusTransition } from "../utils/appointmentStatusRules";
 
 const prisma = new PrismaClient();
 
 export class AppointmentService {
-  // 1. Get all appointments (Logic moved from GET /admin/appointments)
-  async getAllAppointments(page: number, limit: number, status?: AppointmentStatus) {
-    const where = status ? { status } : {};
+  // 1. Get all appointments (with Search)
+  async getAllAppointments(
+    page: number, 
+    limit: number, 
+    status?: AppointmentStatus,
+    search?: string
+  ) {
+    const where: Prisma.AppointmentRequestWhereInput = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [data, total] = await Promise.all([
       prisma.appointmentRequest.findMany({
@@ -29,7 +46,7 @@ export class AppointmentService {
     };
   }
 
-  // 2. Update Status (Logic moved from PATCH /admin/appointments/:id/status)
+  // 2. Update Status
   async updateStatus(id: string, nextStatus: AppointmentStatus) {
     const appointment = await prisma.appointmentRequest.findUnique({
       where: { id },
@@ -52,12 +69,72 @@ export class AppointmentService {
     });
   }
 
-  // 3. Update Notes (Logic moved from PATCH /admin/appointments/:id/notes)
+  // 3. Update Notes
   async updateNotes(id: string, adminNotes: string) {
+    const appointment = await prisma.appointmentRequest.findUnique({
+      where: { id },
+    });
+
+    if (!appointment) {
+      throw { status: 404, message: "Appointment not found" };
+    }
+
     return await prisma.appointmentRequest.update({
       where: { id },
       data: { adminNotes },
     });
+  }
+
+  // 4. Delete Appointment
+  async deleteAppointment(id: string) {
+    const appointment = await prisma.appointmentRequest.findUnique({
+      where: { id },
+    });
+
+    if (!appointment) {
+      throw { status: 404, message: "Appointment not found" };
+    }
+
+    return await prisma.appointmentRequest.delete({
+      where: { id },
+    });
+  }
+
+  // 5. Get Dashboard Stats (New Method)
+  async getDashboardStats() {
+    const [totalAppointments, statusCounts, recentLogs] = await Promise.all([
+      prisma.appointmentRequest.count(),
+      prisma.appointmentRequest.groupBy({
+        by: ['status'],
+        _count: { _all: true }
+      }),
+      prisma.adminActivityLog.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          admin: {
+            select: { email: true, role: true }
+          }
+        }
+      })
+    ]);
+
+    // Format status counts into a nicer object
+    const stats = {
+      NEW: 0,
+      CONTACTED: 0,
+      CLOSED: 0
+    };
+    
+    statusCounts.forEach(item => {
+      stats[item.status as keyof typeof stats] = item._count._all;
+    });
+
+    return {
+      total: totalAppointments,
+      byStatus: stats,
+      recentActivity: recentLogs
+    };
   }
 }
 

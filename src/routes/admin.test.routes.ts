@@ -3,11 +3,24 @@ import { AppointmentStatus, AdminRole } from "@prisma/client";
 import { requireAdmin } from "../middleware/adminAuth";
 import { authorizeRoles } from "../utils/authorizeRole";
 import { logAdminActivity } from "../utils/adminActivityLogger";
-import { appointmentService } from "../services/appointment.service"; // Import our new service
+import { appointmentService } from "../services/appointment.service";
 
 const router = Router();
 
-// ... (GET /test stays same)
+// GET /stats (New Route)
+router.get(
+  "/stats",
+  requireAdmin,
+  authorizeRoles([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const stats = await appointmentService.getDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // GET /appointments
 router.get(
@@ -19,9 +32,9 @@ router.get(
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 10;
       const status = req.query.status as AppointmentStatus | undefined;
+      const search = req.query.search as string | undefined;
 
-      // Use the service
-      const result = await appointmentService.getAllAppointments(page, limit, status);
+      const result = await appointmentService.getAllAppointments(page, limit, status, search);
 
       await logAdminActivity({
         adminId: req.admin!.id,
@@ -49,7 +62,6 @@ router.patch(
         return res.status(400).json({ message: "Invalid status value" });
       }
 
-      // Use the service
       const updated = await appointmentService.updateStatus(id, nextStatus);
 
       await logAdminActivity({
@@ -75,7 +87,6 @@ router.patch(
       const { id } = req.params;
       const { adminNotes } = req.body;
 
-      // Use the service
       const updated = await appointmentService.updateNotes(id, adminNotes);
 
       await logAdminActivity({
@@ -85,6 +96,30 @@ router.patch(
       });
 
       res.json(updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// DELETE /appointments/:id
+router.delete(
+  "/appointments/:id",
+  requireAdmin,
+  authorizeRoles([AdminRole.SUPER_ADMIN]),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+
+      await appointmentService.deleteAppointment(id);
+
+      await logAdminActivity({
+        adminId: req.admin!.id,
+        action: "DELETE_APPOINTMENT",
+        targetId: id,
+      });
+
+      res.json({ message: "Appointment deleted successfully" });
     } catch (error) {
       next(error);
     }
