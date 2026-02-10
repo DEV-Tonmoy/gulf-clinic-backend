@@ -10,8 +10,14 @@ if (!process.env.JWT_SECRET) {
     console.warn("⚠️ [AUTH]: JWT_SECRET is not defined in Environment Variables. Using fallback.");
 }
 
+// Keep this for existing code
 export const generateToken = (payload: any) => {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+};
+
+// ADD THIS: This fixes the error in Screenshot 562
+export const signAdminToken = (adminId: string) => {
+    return jwt.sign({ id: adminId, role: 'ADMIN' }, JWT_SECRET, { expiresIn: '7d' });
 };
 
 export const verifyToken = (token: string) => {
