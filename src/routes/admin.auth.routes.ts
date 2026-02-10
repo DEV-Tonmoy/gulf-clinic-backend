@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { adminLoginRateLimit } from "../middleware/adminRateLimit";
 import { authService } from "../services/auth.service";
+import { requireAdmin } from "../middleware/adminAuth"; // ✅ Fixed import path
 
 const router = Router();
 
@@ -28,6 +29,35 @@ router.post(
       });
 
       return res.json({ message: "Login successful" });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// POST /admin/change-password
+// Requires Admin Authentication
+router.post(
+  "/change-password",
+  requireAdmin, // ✅ Protects this route
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      
+      // ✅ Using req.admin.id to match your middleware's "declare global"
+      if (!req.admin) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const adminId = req.admin.id; 
+
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Both old and new passwords are required" });
+      }
+
+      await authService.changePassword(adminId, oldPassword, newPassword);
+
+      return res.json({ message: "Password updated successfully" });
     } catch (error) {
       next(error);
     }

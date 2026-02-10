@@ -8,6 +8,7 @@ import healthRouter from "./routes/health.route";
 import appointmentRoutes from "./routes/appointment.routes";
 import adminAuthRoutes from "./routes/admin.auth.routes";
 import adminTestRoutes from "./routes/admin.test.routes";
+import adminManagementRoutes from "./routes/admin.management.routes"; // ✅ Newly added
 import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
@@ -39,12 +40,12 @@ app.use(cookieParser());
 
 // Routes
 app.use("/health", healthRouter);
-app.use("/appointments", appointmentRoutes);
-app.use("/admin", adminAuthRoutes);
-app.use("/admin", adminTestRoutes);
+app.use("/appointments", appointmentRoutes); // Public intake
+app.use("/admin", adminAuthRoutes);           // Login, Logout, Password
+app.use("/admin", adminTestRoutes);           // Testing tools
+app.use("/admin", adminManagementRoutes);      // ✅ Management (Stats, Appointments List, Delete)
 
 // 3. Global Error Handler (MUST BE LAST)
-// This catches all errors passed from next(error) in your routes
 app.use(errorHandler);
 
 export default app;
