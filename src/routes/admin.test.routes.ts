@@ -1,30 +1,34 @@
 import { Router } from 'express';
-import { generateToken } from '../utils/jwt';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
+const JWT_SECRET = process.env.JWT_SECRET || "";
 
-// POST /admin/login
-router.post('/login', async (req, res) => {
+/**
+ * GET /admin/verify
+ * This is the "Heartbeat" of your authentication.
+ * The frontend calls this to see if the 'token' cookie is valid.
+ */
+router.get('/verify', (req, res) => {
+    const token = req.cookies.token;
+
+    if (!token) {
+        console.log("Verification failed: No token found in cookies.");
+        return res.status(401).json({ authenticated: false, message: "No session found" });
+    }
+
     try {
-        const { email, password } = req.body;
+        // Verify the token using the secret from your environment variables
+        const decoded = jwt.verify(token, JWT_SECRET);
         
-        // --- ADD YOUR DATABASE CHECK HERE ---
-        // For now, we assume login is successful:
-        const admin = { id: '1', email, role: 'ADMIN' };
-        const token = generateToken(admin);
-
-        // CRITICAL FOR RAILWAY: 
-        // We must set secure: true and sameSite: 'none' for HTTPS
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: true, // Must be true for Railway (HTTPS)
-            sameSite: 'none', // Must be 'none' for cross-domain cookies
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        // If successful, tell the frontend they are good to go
+        res.json({ 
+            authenticated: true, 
+            admin: decoded 
         });
-
-        res.json({ message: 'Logged in successfully', admin });
     } catch (error) {
-        res.status(500).json({ message: 'Login failed' });
+        console.error("Verification failed: Invalid or expired token.");
+        res.status(401).json({ authenticated: false, message: "Session expired" });
     }
 });
 

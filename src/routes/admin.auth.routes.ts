@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { generateToken } from '../utils/jwt';
+import { signAdminToken } from '../utils/jwt';
 
 const router = Router();
 
@@ -8,24 +8,50 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // --- ADD YOUR DATABASE CHECK HERE ---
-        // For now, we assume login is successful:
+        // --- DATABASE CHECK (Placeholder) ---
+        // Replace this with your Prisma check later.
         const admin = { id: '1', email, role: 'ADMIN' };
-        const token = generateToken(admin);
+        
+        // Generate the JWT token using your utility
+        const token = signAdminToken(admin.id);
 
-        // CRITICAL FOR RAILWAY: 
-        // We must set secure: true and sameSite: 'none' for HTTPS
+        /**
+         * CRITICAL FOR RAILWAY & CROSS-DOMAIN:
+         * 1. httpOnly: Prevents XSS attacks.
+         * 2. secure: true: Required because Railway uses HTTPS.
+         * 3. sameSite: 'none': Required because Frontend and Backend have different URLs.
+         */
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true, // Must be true for Railway (HTTPS)
-            sameSite: 'none', // Must be 'none' for cross-domain cookies
+            secure: true, 
+            sameSite: 'none', 
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
-        res.json({ message: 'Logged in successfully', admin });
+        console.log(`Successfully logged in: ${email}`);
+        res.json({ 
+            success: true,
+            message: 'Logged in successfully', 
+            admin 
+        });
+
     } catch (error) {
-        res.status(500).json({ message: 'Login failed' });
+        console.error('Login error details:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Login failed internal server error' 
+        });
     }
+});
+
+// POST /admin/logout
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    });
+    res.json({ success: true, message: 'Logged out successfully' });
 });
 
 export default router;
