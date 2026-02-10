@@ -1,39 +1,34 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
 import { appointmentRequestSchema } from "../validators";
 import { publicIntakeRateLimit } from "../middleware/publicRateLimit";
+import { appointmentService } from "../services/appointment.service";
 
 const router = Router();
-const prisma = new PrismaClient();
 
-router.post("/request", publicIntakeRateLimit, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // This will throw a ZodError automatically if validation fails
-    const validatedData = appointmentRequestSchema.parse(req.body);
+// POST /appointments/request
+router.post(
+  "/request", 
+  publicIntakeRateLimit, 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // 1. Validate input using your Zod schema
+      const validatedData = appointmentRequestSchema.parse(req.body);
 
-    const { fullName, phone, email, preferredDate, message } = validatedData;
+      // 2. Use the service to save to DB
+      const newRequest = await appointmentService.createAppointment(validatedData);
 
-    const newRequest = await prisma.appointmentRequest.create({
-      data: {
-        fullName,
-        phone,
-        email,
-        preferredDate: preferredDate ? new Date(preferredDate) : null,
-        message,
-        status: "NEW", 
-      },
-    });
+      // 3. Return response
+      return res.status(201).json({
+        message: "Appointment request submitted successfully.",
+        referenceId: newRequest.id,
+        status: newRequest.status
+      });
 
-    return res.status(201).json({
-      message: "Appointment request submitted successfully.",
-      referenceId: newRequest.id,
-      status: newRequest.status
-    });
-
-  } catch (error) {
-    // Sends the error to our new Global Error Handler
-    next(error);
+    } catch (error) {
+      // Passes Zod validation errors or DB errors to Global Error Handler
+      next(error);
+    }
   }
-});
+);
 
 export default router;

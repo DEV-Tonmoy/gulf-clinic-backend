@@ -3,8 +3,31 @@ import { isValidStatusTransition } from "../utils/appointmentStatusRules";
 
 const prisma = new PrismaClient();
 
+// Type for the validated data coming from your Zod schema
+export interface CreateAppointmentInput {
+  fullName: string;
+  phone: string;
+  email?: string | null;
+  message?: string | null;
+  preferredDate?: string | Date | null;
+}
+
 export class AppointmentService {
-  // 1. Get all appointments (with Search)
+  // 1. Create Appointment (Logic moved from Route to Service)
+  async createAppointment(data: CreateAppointmentInput) {
+    return await prisma.appointmentRequest.create({
+      data: {
+        fullName: data.fullName,
+        phone: data.phone,
+        email: data.email,
+        message: data.message,
+        preferredDate: data.preferredDate ? new Date(data.preferredDate) : null,
+        status: AppointmentStatus.NEW,
+      },
+    });
+  }
+
+  // 2. Get all appointments (with Search)
   async getAllAppointments(
     page: number, 
     limit: number, 
@@ -46,7 +69,7 @@ export class AppointmentService {
     };
   }
 
-  // 2. Update Status
+  // 3. Update Status
   async updateStatus(id: string, nextStatus: AppointmentStatus) {
     const appointment = await prisma.appointmentRequest.findUnique({
       where: { id },
@@ -69,7 +92,7 @@ export class AppointmentService {
     });
   }
 
-  // 3. Update Notes
+  // 4. Update Notes
   async updateNotes(id: string, adminNotes: string) {
     const appointment = await prisma.appointmentRequest.findUnique({
       where: { id },
@@ -85,7 +108,7 @@ export class AppointmentService {
     });
   }
 
-  // 4. Delete Appointment
+  // 5. Delete Appointment
   async deleteAppointment(id: string) {
     const appointment = await prisma.appointmentRequest.findUnique({
       where: { id },
@@ -100,7 +123,7 @@ export class AppointmentService {
     });
   }
 
-  // 5. Get Dashboard Stats (New Method)
+  // 6. Get Dashboard Stats
   async getDashboardStats() {
     const [totalAppointments, statusCounts, recentLogs] = await Promise.all([
       prisma.appointmentRequest.count(),
@@ -119,7 +142,6 @@ export class AppointmentService {
       })
     ]);
 
-    // Format status counts into a nicer object
     const stats = {
       NEW: 0,
       CONTACTED: 0,
