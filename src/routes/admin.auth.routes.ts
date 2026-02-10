@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { adminLoginRateLimit } from "../middleware/adminRateLimit";
 import { authService } from "../services/auth.service";
-import { requireAdmin } from "../middleware/adminAuth"; // ✅ Fixed import path
+import { requireAdmin } from "../middleware/adminAuth";
 
 const router = Router();
 
@@ -21,9 +21,10 @@ router.post(
       const { token } = await authService.login(email, password);
 
       // Set cookie
+      // Using 'lax' for sameSite in development allows the cookie to pass between port 5173 and 5000
       res.cookie("admin_token", token, {
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
         secure: process.env.NODE_ENV === "production",
         maxAge: 1000 * 60 * 60 * 24, // 24 hours
       });
@@ -36,15 +37,13 @@ router.post(
 );
 
 // POST /admin/change-password
-// Requires Admin Authentication
 router.post(
   "/change-password",
-  requireAdmin, // ✅ Protects this route
+  requireAdmin, 
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { oldPassword, newPassword } = req.body;
       
-      // ✅ Using req.admin.id to match your middleware's "declare global"
       if (!req.admin) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -66,9 +65,10 @@ router.post(
 
 // POST /admin/logout
 router.post("/logout", (req: Request, res: Response) => {
+  // Clear cookie with matching settings
   res.clearCookie("admin_token", {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     secure: process.env.NODE_ENV === "production",
   });
   return res.json({ message: "Logged out successfully" });
