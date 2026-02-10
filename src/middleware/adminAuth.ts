@@ -1,52 +1,26 @@
-import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import { PrismaClient, Admin } from "@prisma/client";
+import { Request, Response, NextFunction } from 'express';
+import { verifyToken } from '../utils/jwt';
 
-const prisma = new PrismaClient();
-
-// This "extends" the Express Request type so req.admin is recognized
-declare global {
-  namespace Express {
-    interface Request {
-      admin?: Admin;
-    }
-  }
-}
-
-interface JwtPayload {
-  adminId: string;
-}
-
-export async function requireAdmin(
-  req: Request,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const token = req.cookies?.admin_token;
+export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
+    // 1. Get token from Cookie or Authorization Header
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-      return res.status(401).json({ message: "Not authenticated" });
+        return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const secret = process.env.JWT_SECRET || "fallback_secret_change_me";
+    // 2. Verify the token
+    const decoded = verifyToken(token);
     
-    const decoded = jwt.verify(token, secret) as JwtPayload;
-
-    const admin = await prisma.admin.findUnique({
-      where: { id: decoded.adminId },
-    });
-
-    if (!admin || !admin.isActive) {
-      return res.status(401).json({ message: "Invalid admin session" });
+    // 3. Match the Role (Checking for uppercase 'ADMIN' to match Prisma)
+    if (!decoded || (decoded as any).role.toUpperCase() !== 'ADMIN' && (decoded as any).role.toUpperCase() !== 'SUPER_ADMIN') {
+        return res.status(403).json({ message: 'Access denied. Admins only.' });
     }
 
-    // ✅ This will no longer be red because of the "declare global" above
-    req.admin = admin;
-
+    // 4. FIX: Save to req.admin so your routes don't crash
+    (req as any).admin = decoded; 
     next();
-  } catch (error) {
-    console.error("Auth Middleware Error:", error);
-    return res.status(401).json({ message: "Authentication failed" });
-  }
-}
+};
+
+// Export as requireAdmin to match your route imports
+export const requireAdmin = adminAuth;
