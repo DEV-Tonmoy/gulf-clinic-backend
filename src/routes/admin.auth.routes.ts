@@ -16,15 +16,16 @@ router.post('/login', async (req, res) => {
         const token = signAdminToken(admin.id);
 
         /**
-         * CRITICAL FOR RAILWAY & CROSS-DOMAIN:
-         * 1. httpOnly: Prevents XSS attacks.
-         * 2. secure: true: Required because Railway uses HTTPS.
-         * 3. sameSite: 'none': Required because Frontend and Backend have different URLs.
+         * FIX: Conditional Cookie Settings
+         * We only use 'secure' and 'sameSite: none' in production.
+         * Localhost cannot handle 'secure: true' over regular HTTP.
          */
+        const isProduction = process.env.NODE_ENV === 'production';
+
         res.cookie('token', token, {
             httpOnly: true,
-            secure: true, 
-            sameSite: 'none', 
+            secure: isProduction, // False on localhost, True on Railway
+            sameSite: isProduction ? 'none' : 'lax', // 'lax' is better for local dev
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
 
@@ -38,7 +39,7 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error('Login error details:', error);
         res.status(500).json({ 
-            success: false,
+            success: false, 
             message: 'Login failed internal server error' 
         });
     }
@@ -46,10 +47,11 @@ router.post('/login', async (req, res) => {
 
 // POST /admin/logout
 router.post('/logout', (req, res) => {
+    const isProduction = process.env.NODE_ENV === 'production';
     res.clearCookie('token', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none'
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax'
     });
     res.json({ success: true, message: 'Logged out successfully' });
 });

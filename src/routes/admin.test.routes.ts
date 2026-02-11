@@ -1,35 +1,41 @@
 import { Router } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../utils/jwt';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "";
 
 /**
- * GET /admin/verify
- * This is the "Heartbeat" of your authentication.
- * The frontend calls this to see if the 'token' cookie is valid.
+ * GET /admin/stats (Matches what useAuth.ts is calling)
+ * This acts as the session verification and returns admin data.
  */
-router.get('/verify', (req, res) => {
+router.get('/stats', (req, res) => {
     const token = req.cookies.token;
 
     if (!token) {
         console.log("Verification failed: No token found in cookies.");
-        return res.status(401).json({ authenticated: false, message: "No session found" });
+        return res.status(401).json({ 
+            authenticated: false, 
+            admin: null, 
+            message: "No session found" 
+        });
     }
 
-    try {
-        // Verify the token using the secret from your environment variables
-        const decoded = jwt.verify(token, JWT_SECRET);
-        
-        // If successful, tell the frontend they are good to go
-        res.json({ 
-            authenticated: true, 
-            admin: decoded 
-        });
-    } catch (error) {
+    // Use your existing verifyToken utility
+    const decoded = verifyToken(token);
+
+    if (!decoded) {
         console.error("Verification failed: Invalid or expired token.");
-        res.status(401).json({ authenticated: false, message: "Session expired" });
+        return res.status(401).json({ 
+            authenticated: false, 
+            admin: null, 
+            message: "Session expired" 
+        });
     }
+
+    // Success: Return the admin object just like useAuth expects
+    res.json({ 
+        authenticated: true, 
+        admin: decoded 
+    });
 });
 
 export default router;
