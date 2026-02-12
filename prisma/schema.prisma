@@ -8,6 +8,25 @@ datasource db {
 }
 
 // =========================
+// DOCTORS
+// =========================
+
+model Doctor {
+  id           String   @id @default(uuid())
+  name         String
+  specialty    String
+  image        String?  // URL for their photo
+  bio          String?  // Short description
+  isActive     Boolean  @default(true)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // A doctor can have many appointments
+  appointments AppointmentRequest[]
+}
+
+// =========================
 // APPOINTMENT REQUESTS
 // =========================
 
@@ -21,6 +40,24 @@ model AppointmentRequest {
   status        AppointmentStatus @default(NEW)
   adminNotes    String?
   createdAt     DateTime          @default(now())
+
+  // Link to a specific doctor
+  doctorId      String?
+  doctor        Doctor?           @relation(fields: [doctorId], references: [id])
+}
+
+// =========================
+// CLINIC SETTINGS (SaaS Toggles)
+// =========================
+
+model ClinicSettings {
+  id            String   @id @default("singleton") // Only one row ever exists
+  clinicName    String   @default("Gulf Clinic")
+  emailEnabled  Boolean  @default(false)
+  aiEnabled     Boolean  @default(false)
+  sheetsEnabled Boolean  @default(false)
+  
+  updatedAt     DateTime @updatedAt
 }
 
 // =========================

@@ -1,51 +1,62 @@
 import { Router } from 'express';
+import { prisma } from '../lib/prisma';
 import { signAdminToken } from '../utils/jwt';
+import bcrypt from 'bcrypt'; // You have this in your package.json
 
 const router = Router();
 
-// POST /admin/login
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // --- DATABASE CHECK (Placeholder) ---
-        // Replace this with your Prisma check later.
-        const admin = { id: '1', email, role: 'ADMIN' };
-        
-        // Generate the JWT token using your utility
-        const token = signAdminToken(admin.id);
+        // 1. Find real admin in database
+        const admin = await prisma.admin.findUnique({
+            where: { email }
+        });
 
-        /**
-         * FIX: Conditional Cookie Settings
-         * We only use 'secure' and 'sameSite: none' in production.
-         * Localhost cannot handle 'secure: true' over regular HTTP.
-         */
+        // 2. Validate existence and password
+        if (!admin) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, admin.passwordHash);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+
+        if (!admin.isActive) {
+            return res.status(403).json({ success: false, message: 'Account is deactivated' });
+        }
+        
+        // 3. Sign token with REAL database role (ADMIN or SUPER_ADMIN)
+        const token = signAdminToken(admin.id, admin.role);
         const isProduction = process.env.NODE_ENV === 'production';
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: isProduction, // False on localhost, True on Railway
-            sameSite: isProduction ? 'none' : 'lax', // 'lax' is better for local dev
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            secure: isProduction, 
+            sameSite: isProduction ? 'none' : 'lax', 
+            maxAge: 7 * 24 * 60 * 60 * 1000 
         });
 
-        console.log(`Successfully logged in: ${email}`);
+        console.log(`[AUTH] Login success: ${email} (${admin.role})`);
+        
         res.json({ 
             success: true,
             message: 'Logged in successfully', 
-            admin 
+            admin: {
+                id: admin.id,
+                email: admin.email,
+                role: admin.role
+            }
         });
 
     } catch (error) {
-        console.error('Login error details:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Login failed internal server error' 
-        });
+        console.error('[AUTH] Login error:', error);
+        res.status(500).json({ success: false, message: 'Login failed' });
     }
 });
 
-// POST /admin/logout
 router.post('/logout', (req, res) => {
     const isProduction = process.env.NODE_ENV === 'production';
     res.clearCookie('token', {

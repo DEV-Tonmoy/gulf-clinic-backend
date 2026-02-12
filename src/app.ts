@@ -8,6 +8,9 @@ import healthRouter from "./routes/health.route";
 import appointmentRoutes from "./routes/appointment.routes";
 import adminAuthRoutes from "./routes/admin.auth.routes";
 import adminTestRoutes from "./routes/admin.test.routes";
+import adminSettingsRoutes from "./routes/admin.settings.routes";
+import adminDoctorRoutes from "./routes/admin.doctor.routes";
+import publicDoctorRoutes from "./routes/public.doctor.routes"; // NEW
 import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
@@ -35,11 +38,16 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
+// Public Routes
 app.use("/health", healthRouter);
 app.use("/appointments", appointmentRoutes); 
-app.use("/admin", adminAuthRoutes); // Login logic is here
-app.use("/admin", adminTestRoutes); // Protected stats/appointments are here
+app.use("/api", publicDoctorRoutes); // Mount public doctors under /api/doctors
+
+// Admin Routes
+app.use("/admin", adminAuthRoutes);
+app.use("/admin", adminTestRoutes);
+app.use("/admin", adminSettingsRoutes);
+app.use("/admin", adminDoctorRoutes); 
 
 app.use(errorHandler);
 
