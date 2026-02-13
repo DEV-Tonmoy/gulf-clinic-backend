@@ -10,7 +10,8 @@ import adminAuthRoutes from "./routes/admin.auth.routes";
 import adminTestRoutes from "./routes/admin.test.routes";
 import adminSettingsRoutes from "./routes/admin.settings.routes";
 import adminDoctorRoutes from "./routes/admin.doctor.routes";
-import publicDoctorRoutes from "./routes/public.doctor.routes"; // NEW
+import publicDoctorRoutes from "./routes/public.doctor.routes";
+import publicSettingsRoutes from "./routes/public.settings.routes"; // NEW
 import { errorHandler } from "./middleware/errorHandler";
 
 dotenv.config();
@@ -40,14 +41,16 @@ app.use(cookieParser());
 
 // Public Routes
 app.use("/health", healthRouter);
-app.use("/appointments", appointmentRoutes); 
-app.use("/api", publicDoctorRoutes); // Mount public doctors under /api/doctors
+app.use("/api", appointmentRoutes);      // Public booking
+app.use("/api", publicDoctorRoutes);     // Public doctor list
+app.use("/api", publicSettingsRoutes);   // Public branding/toggles config
 
 // Admin Routes
 app.use("/admin", adminAuthRoutes);
 app.use("/admin", adminTestRoutes);
 app.use("/admin", adminSettingsRoutes);
 app.use("/admin", adminDoctorRoutes); 
+app.use("/admin", appointmentRoutes);    // Admin stats/list
 
 app.use(errorHandler);
 

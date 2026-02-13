@@ -43,21 +43,25 @@ model AppointmentRequest {
 
   // Link to a specific doctor
   doctorId      String?
-  doctor        Doctor?           @relation(fields: [doctorId], references: [id])
+  doctor        Doctor?            @relation(fields: [doctorId], references: [id])
 }
 
 // =========================
-// CLINIC SETTINGS (SaaS Toggles)
+// CLINIC SETTINGS (SaaS Toggles & Branding)
 // =========================
 
 model ClinicSettings {
-  id            String   @id @default("singleton") // Only one row ever exists
-  clinicName    String   @default("Gulf Clinic")
-  emailEnabled  Boolean  @default(false)
-  aiEnabled     Boolean  @default(false)
-  sheetsEnabled Boolean  @default(false)
+  id             String   @id @default("singleton") // Only one row ever exists
+  clinicName     String   @default("Gulf Clinic")
+  clinicLogo     String?  // URL for the navbar logo
+  contactEmail   String?  // Email for notification routing
+  whatsappNumber String?  // For the public WhatsApp redirect
   
-  updatedAt     DateTime @updatedAt
+  emailEnabled   Boolean  @default(false)
+  aiEnabled      Boolean  @default(false)
+  sheetsEnabled  Boolean  @default(false)
+  
+  updatedAt      DateTime @updatedAt
 }
 
 // =========================

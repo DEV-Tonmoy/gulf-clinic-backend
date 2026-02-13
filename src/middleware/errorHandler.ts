@@ -17,9 +17,8 @@ export const errorHandler = (
     statusCode = 400;
     code = "VALIDATION_ERROR";
     
-    // We treat 'err' as 'any' just for this map to bypass the strict check
-    const zodErr = err as any; 
-    message = zodErr.errors
+    // Fixed: Zod uses .issues, which contains the array we need to map over
+    message = err.issues
       .map((e: any) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
   } 
@@ -30,6 +29,7 @@ export const errorHandler = (
     message = "Database operation failed";
   }
 
+  // Consistent JSON response for your SaaS frontend
   res.status(statusCode).json({
     message,
     code,

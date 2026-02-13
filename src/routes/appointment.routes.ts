@@ -1,20 +1,63 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { AppointmentStatus, AdminRole } from "@prisma/client";
+import { prisma } from "../lib/prisma";
 import { requireAdmin } from "../middleware/adminAuth";
-import { authorizeRoles } from "../utils/authorizeRole";
+import { authorizeRole } from "../middleware/authorizeRole"; 
 import { appointmentService } from "../services/appointment.service";
 
 const router = Router();
 
-// GET /stats - This is what useAuth calls
+/**
+ * PUBLIC: Create Appointment Request
+ * Triggered by the Email Booking Form on the landing page
+ */
+router.post("/appointments", async (req: Request, res: Response) => {
+  try {
+    // 1. Check if the clinic has enabled email bookings
+    const settings = await prisma.clinicSettings.findUnique({ where: { id: 'singleton' } });
+    
+    if (!settings?.emailEnabled) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Online booking is currently disabled. Please contact us via WhatsApp." 
+      });
+    }
+
+    const { fullName, phone, email, message, doctorId, preferredDate } = req.body;
+
+    if (!fullName || !phone) {
+      return res.status(400).json({ success: false, message: "Full name and phone number are required" });
+    }
+
+    // 2. Save the request
+    const newRequest = await prisma.appointmentRequest.create({
+      data: { 
+        fullName, 
+        phone, 
+        email, 
+        message, 
+        doctorId, 
+        preferredDate: preferredDate ? new Date(preferredDate) : null,
+        status: 'NEW' 
+      }
+    });
+
+    res.json({ success: true, message: "Booking request submitted!", data: newRequest });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Submission failed" });
+  }
+});
+
+/**
+ * ADMIN: Dashboard Statistics
+ */
 router.get(
   "/stats",
   requireAdmin,
-  authorizeRoles([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
+  authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const stats = await appointmentService.getDashboardStats();
-      // We return the admin data back so the frontend can save it
       res.json({ 
         ...stats, 
         admin: (req as any).admin 
@@ -25,11 +68,13 @@ router.get(
   }
 );
 
-// GET /appointments
+/**
+ * ADMIN: Fetch All Appointments
+ */
 router.get(
   "/appointments",
   requireAdmin,
-  authorizeRoles([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
+  authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const page = Number(req.query.page) || 1;
