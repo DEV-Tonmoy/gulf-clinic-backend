@@ -13,7 +13,7 @@ export interface CreateAppointmentInput {
 }
 
 export class AppointmentService {
-  // 1. Create Appointment (Logic moved from Route to Service)
+  // 1. Create Appointment
   async createAppointment(data: CreateAppointmentInput) {
     return await prisma.appointmentRequest.create({
       data: {
@@ -76,14 +76,15 @@ export class AppointmentService {
     });
 
     if (!appointment) {
-      throw { status: 404, message: "Appointment not found" };
+      const error: any = new Error("Appointment not found");
+      error.status = 404;
+      throw error;
     }
 
     if (!isValidStatusTransition(appointment.status, nextStatus)) {
-      throw { 
-        status: 400, 
-        message: `Invalid status transition from ${appointment.status} to ${nextStatus}` 
-      };
+      const error: any = new Error(`Invalid status transition from ${appointment.status} to ${nextStatus}`);
+      error.status = 400;
+      throw error;
     }
 
     return await prisma.appointmentRequest.update({
@@ -99,7 +100,9 @@ export class AppointmentService {
     });
 
     if (!appointment) {
-      throw { status: 404, message: "Appointment not found" };
+      const error: any = new Error("Appointment not found");
+      error.status = 404;
+      throw error;
     }
 
     return await prisma.appointmentRequest.update({
@@ -115,7 +118,9 @@ export class AppointmentService {
     });
 
     if (!appointment) {
-      throw { status: 404, message: "Appointment not found" };
+      const error: any = new Error("Appointment not found");
+      error.status = 404;
+      throw error;
     }
 
     return await prisma.appointmentRequest.delete({
@@ -142,14 +147,16 @@ export class AppointmentService {
       })
     ]);
 
-    const stats = {
+    const stats: Record<string, number> = {
       NEW: 0,
       CONTACTED: 0,
       CLOSED: 0
     };
     
     statusCounts.forEach(item => {
-      stats[item.status as keyof typeof stats] = item._count._all;
+      if (item.status) {
+        stats[item.status] = item._count._all;
+      }
     });
 
     return {

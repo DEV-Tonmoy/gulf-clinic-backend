@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import * as express from 'express';
 import { prisma } from '../lib/prisma';
 
-const router = Router();
+const router = express.Router();
 
 // GET /api/doctors - Public list of active doctors
-router.get('/doctors', async (req, res) => {
+router.get('/', async (req: express.Request, res: express.Response) => {
   try {
     const doctors = await prisma.doctor.findMany({
       where: { 

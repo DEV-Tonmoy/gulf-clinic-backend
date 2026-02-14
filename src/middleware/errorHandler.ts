@@ -1,12 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import * as express from "express";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 
 export const errorHandler = (
   err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
 ) => {
   let statusCode = err.status || 500;
   let message = err.message || "Internal Server Error";
@@ -17,7 +17,6 @@ export const errorHandler = (
     statusCode = 400;
     code = "VALIDATION_ERROR";
     
-    // Fixed: Zod uses .issues, which contains the array we need to map over
     message = err.issues
       .map((e: any) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
@@ -29,8 +28,14 @@ export const errorHandler = (
     message = "Database operation failed";
   }
 
-  // Consistent JSON response for your SaaS frontend
+  // Log error for server debugging
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(`[Error] ${code}: ${message}`, err);
+  }
+
+  // Consistent JSON response for your frontend
   res.status(statusCode).json({
+    success: false,
     message,
     code,
   });

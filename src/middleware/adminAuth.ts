@@ -1,9 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
+import * as express from 'express';
 import { verifyToken } from '../utils/jwt';
 
-export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
+export const adminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     // 1. Get token from Cookie or Authorization Header
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    // Safety check: req.cookies might be undefined if cookie-parser fails
+    const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
         return res.status(401).json({ success: false, message: 'Authentication required' });

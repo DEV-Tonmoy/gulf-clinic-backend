@@ -1,17 +1,17 @@
-import { Router } from 'express';
+import * as express from 'express';
 import { prisma } from '../lib/prisma';
 import { adminAuth } from '../middleware/adminAuth';
 import { authorizeRole } from '../middleware/authorizeRole';
 import { AdminRole } from '@prisma/client';
 
-const router = Router();
+const router = express.Router();
 
 // 1. Get all doctors (Admin view: shows active and inactive)
 router.get(
   '/doctors', 
   adminAuth, 
   authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]), 
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const doctors = await prisma.doctor.findMany({
         orderBy: { createdAt: 'desc' }
@@ -27,7 +27,7 @@ router.post(
   '/doctors', 
   adminAuth, 
   authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]), 
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const { name, specialty, image, bio } = req.body;
 
@@ -50,7 +50,7 @@ router.patch(
   '/doctors/:id',
   adminAuth,
   authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const { id } = req.params;
       const { name, specialty, image, bio, isActive } = req.body;
@@ -81,11 +81,10 @@ router.delete(
   '/doctors/:id', 
   adminAuth, 
   authorizeRole([AdminRole.SUPER_ADMIN]), 
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const { id } = req.params;
       
-      // Professional Soft Delete: We update isActive to false instead of deleting the row
       await prisma.doctor.update({
         where: { id },
         data: { isActive: false }

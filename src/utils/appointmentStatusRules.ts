@@ -1,14 +1,14 @@
 import { AppointmentStatus } from "@prisma/client";
 
 const allowedTransitions: Record<AppointmentStatus, AppointmentStatus[]> = {
-  NEW: [AppointmentStatus.CONTACTED, AppointmentStatus.CLOSED],
-  CONTACTED: [AppointmentStatus.CLOSED],
-  CLOSED: [],
+  [AppointmentStatus.NEW]: [AppointmentStatus.CONTACTED, AppointmentStatus.CLOSED],
+  [AppointmentStatus.CONTACTED]: [AppointmentStatus.CLOSED],
+  [AppointmentStatus.CLOSED]: [],
 };
 
 export function isValidStatusTransition(
   current: AppointmentStatus,
   next: AppointmentStatus
 ): boolean {
-  return allowedTransitions[current].includes(next);
+  return allowedTransitions[current]?.includes(next) ?? false;
 }

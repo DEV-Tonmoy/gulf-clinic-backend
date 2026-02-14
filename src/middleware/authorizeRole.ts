@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import * as express from 'express';
 import { AdminRole } from '@prisma/client';
 
 export const authorizeRole = (roles: AdminRole[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     // adminAuth must run before this to populate req.admin
     const admin = (req as any).admin;
 

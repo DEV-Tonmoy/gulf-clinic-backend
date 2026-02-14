@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import * as express from 'express';
 import { prisma } from '../lib/prisma';
 import { signAdminToken } from '../utils/jwt';
 import bcrypt from 'bcrypt';
 
-const router = Router();
+const router = express.Router();
 
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: express.Request, res: express.Response) => {
     try {
         const { email, password } = req.body;
         
@@ -42,11 +42,11 @@ router.post('/login', async (req, res) => {
 
         console.log(`[AUTH] Login success: ${email} (${admin.role})`);
         
-        // 5. CRITICAL: Return the token in the response body so Frontend can save it
+        // 5. Return the token in the response body so Frontend can save it
         res.json({ 
             success: true,
             message: 'Logged in successfully', 
-            token: token, // This is what the frontend needs for localStorage
+            token: token, 
             admin: {
                 id: admin.id,
                 email: admin.email,
@@ -60,7 +60,7 @@ router.post('/login', async (req, res) => {
     }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', (req: express.Request, res: express.Response) => {
     const isProduction = process.env.NODE_ENV === 'production';
     res.clearCookie('token', {
         httpOnly: true,
