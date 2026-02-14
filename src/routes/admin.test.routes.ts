@@ -6,26 +6,60 @@ const router = Router();
 
 /**
  * GET /admin/stats
- * Verifies session and returns admin data for the AuthContext.
+ * Provides dashboard metrics and auth verification.
  */
-router.get('/stats', (req, res) => {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ authenticated: false, admin: null });
+router.get('/stats', async (req, res) => {
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    
+    if (!token) return res.status(401).json({ success: false, authenticated: false });
 
     const decoded = verifyToken(token);
-    if (!decoded) return res.status(401).json({ authenticated: false, admin: null });
+    if (!decoded) return res.status(401).json({ success: false, authenticated: false });
 
-    res.json({ authenticated: true, admin: decoded });
+    try {
+        const total = await prisma.appointmentRequest.count();
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const newToday = await prisma.appointmentRequest.count({
+            where: { createdAt: { gte: todayStart } }
+        });
+
+        // This line caused the error; now it works after Step 1
+        const aiHandled = await prisma.appointmentRequest.count({
+            where: { isAi: true }
+        });
+
+        const closed = await prisma.appointmentRequest.count({
+            where: { status: 'CLOSED' }
+        });
+
+        const conversionRate = total > 0 ? `${Math.round((closed / total) * 100)}%` : '0%';
+
+        res.json({ 
+            success: true, 
+            authenticated: true, 
+            admin: decoded,
+            stats: {
+                total,
+                newToday,
+                aiHandled,
+                conversionRate
+            }
+        });
+    } catch (error) {
+        console.error("Stats Error:", error);
+        res.status(500).json({ success: false, message: "Error fetching statistics" });
+    }
 });
 
 /**
  * GET /admin/appointments
- * Fetches all appointments from the AppointmentRequest model.
  */
 router.get('/appointments', async (req, res) => {
     try {
         const { search } = req.query;
-        
         const appointments = await prisma.appointmentRequest.findMany({
             where: search ? {
                 OR: [
@@ -33,53 +67,42 @@ router.get('/appointments', async (req, res) => {
                     { phone: { contains: String(search), mode: 'insensitive' } }
                 ]
             } : {},
+            include: { doctor: true },
             orderBy: { createdAt: 'desc' }
         });
-
         res.json({ success: true, data: appointments });
     } catch (error) {
-        console.error("Fetch Error:", error);
         res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
 
 /**
  * PATCH /admin/appointments/:id
- * Updates the status (NEW, CONTACTED, CLOSED).
  */
 router.patch('/appointments/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
-
         const updated = await prisma.appointmentRequest.update({
             where: { id },
             data: { status }
         });
-
         res.json({ success: true, data: updated });
     } catch (error) {
-        console.error("Update Error:", error);
-        res.status(500).json({ success: false, message: "Failed to update status" });
+        res.status(500).json({ success: false, message: "Update failed" });
     }
 });
 
 /**
  * DELETE /admin/appointments/:id
- * Removes the record from the database.
  */
 router.delete('/appointments/:id', async (req, res) => {
     try {
         const { id } = req.params;
-
-        await prisma.appointmentRequest.delete({
-            where: { id }
-        });
-
+        await prisma.appointmentRequest.delete({ where: { id } });
         res.json({ success: true, message: "Appointment deleted" });
     } catch (error) {
-        console.error("Delete Error:", error);
-        res.status(500).json({ success: false, message: "Failed to delete" });
+        res.status(500).json({ success: false, message: "Delete failed" });
     }
 });
 

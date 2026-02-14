@@ -13,15 +13,15 @@ datasource db {
 // =========================
 
 model Doctor {
-  id          String   @id @default(uuid())
-  name        String
-  specialty   String
-  image       String?  // URL for their photo
-  bio         String?  // Short description
-  isActive    Boolean  @default(true)
+  id           String   @id @default(uuid())
+  name         String
+  specialty    String
+  image        String?  // URL for their photo
+  bio          String?  // Short description
+  isActive     Boolean  @default(true)
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // A doctor can have many appointments
   appointments AppointmentRequest[]
@@ -32,19 +32,23 @@ model Doctor {
 // =========================
 
 model AppointmentRequest {
-  id             String            @id @default(uuid())
-  fullName       String
-  phone          String
-  email          String?
-  message        String?
-  preferredDate  DateTime?
-  status         AppointmentStatus @default(NEW)
-  adminNotes     String?
-  createdAt      DateTime          @default(now())
+  id              String            @id @default(uuid())
+  fullName        String
+  phone           String
+  email           String?
+  message         String?
+  preferredDate   DateTime?
+  status          AppointmentStatus @default(NEW)
+  adminNotes      String?
+  
+  // NEW FIELD: Tracks if the lead was handled by AI
+  isAi            Boolean           @default(false)
+  
+  createdAt       DateTime          @default(now())
 
   // Link to a specific doctor
-  doctorId       String?
-  doctor         Doctor?            @relation(fields: [doctorId], references: [id])
+  doctorId        String?
+  doctor          Doctor?            @relation(fields: [doctorId], references: [id])
 }
 
 // =========================
@@ -52,17 +56,17 @@ model AppointmentRequest {
 // =========================
 
 model ClinicSettings {
-  id             String   @id @default("singleton") // Only one row ever exists
-  clinicName     String   @default("Gulf Clinic")
-  clinicLogo     String?  // URL for the navbar logo
-  contactEmail   String?  // Email for notification routing
-  whatsappNumber String?  // For the public WhatsApp redirect
+  id              String   @id @default("singleton") // Only one row ever exists
+  clinicName      String   @default("Gulf Clinic")
+  clinicLogo      String?  // URL for the navbar logo
+  contactEmail    String?  // Email for notification routing
+  whatsappNumber  String?  // For the public WhatsApp redirect
   
-  emailEnabled   Boolean  @default(false)
-  aiEnabled      Boolean  @default(false)
-  sheetsEnabled  Boolean  @default(false)
+  emailEnabled    Boolean  @default(false)
+  aiEnabled       Boolean  @default(false)
+  sheetsEnabled   Boolean  @default(false)
   
-  updatedAt      DateTime @updatedAt
+  updatedAt       DateTime @updatedAt
 }
 
 // =========================

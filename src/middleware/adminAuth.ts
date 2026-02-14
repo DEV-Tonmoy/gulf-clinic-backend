@@ -6,21 +6,25 @@ export const adminAuth = (req: Request, res: Response, next: NextFunction) => {
     const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: 'Authentication required' });
+        return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
     // 2. Verify the token
     const decoded = verifyToken(token);
     
-    // 3. Match the Role (Checking for uppercase 'ADMIN' to match Prisma)
-    if (!decoded || (decoded as any).role.toUpperCase() !== 'ADMIN' && (decoded as any).role.toUpperCase() !== 'SUPER_ADMIN') {
-        return res.status(403).json({ message: 'Access denied. Admins only.' });
+    // 3. Match the Role
+    if (!decoded) {
+        return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
     }
 
-    // 4. FIX: Save to req.admin so your routes don't crash
+    const role = (decoded as any).role?.toUpperCase();
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ success: false, message: 'Access denied. Admins only.' });
+    }
+
+    // 4. Attach decoded admin to the request object
     (req as any).admin = decoded; 
     next();
 };
 
-// Export as requireAdmin to match your route imports
 export const requireAdmin = adminAuth;
