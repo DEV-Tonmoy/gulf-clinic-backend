@@ -18,12 +18,10 @@ import { errorHandler } from "./middleware/errorHandler";
 dotenv.config();
 const app = express();
 
+// 1. GLOBAL SETTINGS
 app.set("trust proxy", 1); 
 
-app.use(helmet({
-  crossOriginResourcePolicy: false, 
-}));
-
+// 2. CORS CONFIGURATION (Must be at the very top)
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
@@ -33,35 +31,33 @@ const allowedOrigins = [
 ];
 
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } 
-
-    if (process.env.NODE_ENV !== "production") {
-      return callback(null, true);
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl) or if origin is in whitelist
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.error(`Blocked by CORS: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
     }
-
-    console.error(`Blocked by CORS: ${origin}`);
-    return callback(new Error("Not allowed by CORS"), false);
   },
   credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200 // Essential for older browsers/preflight success
+  optionsSuccessStatus: 200 // Responds with 200 instead of 204 for preflight success
 };
 
-// 1. Apply CORS for all standard requests
+// Apply CORS to all routes
 app.use(cors(corsOptions));
 
-// 2. NEW: Explicitly handle PREFLIGHT (OPTIONS) requests for all routes
-app.options('*', cors(corsOptions));
+// Explicitly handle all preflight (OPTIONS) requests globally
+app.options("*", cors(corsOptions));
 
+// 3. REMAINING MIDDLEWARE
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json());
 app.use(cookieParser());
 
+// 4. ROUTE DEFINITIONS
 app.use("/health", healthRouter);
 app.use("/api/public/doctors", publicDoctorRoutes);
 app.use("/api/public/settings", publicSettingsRoutes);
@@ -73,6 +69,7 @@ app.use("/admin/settings", adminSettingsRoutes);
 app.use("/admin/doctors", adminDoctorRoutes); 
 app.use("/admin/management", adminManagementRoutes);
 
+// 5. ERROR HANDLING (Must be at the bottom)
 app.use(errorHandler);
 
 export default app;
