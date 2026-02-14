@@ -49,11 +49,11 @@ export class AuthService {
       },
     });
 
-    const token = signAdminToken(admin.id);
+    // FIXED: Added admin.role as the second argument
+    const token = signAdminToken(admin.id, admin.role);
     return { token };
   }
 
-  // NEW: Change Password Method
   async changePassword(adminId: string, oldPass: string, newPass: string) {
     const admin = await prisma.admin.findUnique({ where: { id: adminId } });
 
@@ -61,16 +61,13 @@ export class AuthService {
       throw { status: 404, message: "Admin not found" };
     }
 
-    // 1. Verify old password
     const isMatch = await bcrypt.compare(oldPass, admin.passwordHash);
     if (!isMatch) {
       throw { status: 400, message: "Current password incorrect" };
     }
 
-    // 2. Hash new password
     const newHash = await bcrypt.hash(newPass, 12);
 
-    // 3. Update database
     return await prisma.admin.update({
       where: { id: adminId },
       data: { 
