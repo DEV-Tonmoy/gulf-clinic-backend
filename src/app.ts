@@ -21,18 +21,18 @@ const app = express();
 // 1. GLOBAL SETTINGS
 app.set("trust proxy", 1); 
 
-// 2. CORS CONFIGURATION (Must be at the very top)
+// 2. CORS CONFIGURATION
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "https://gulfclinic-frontend.onrender.com",
+  "https://gulf-clinic-backend.onrender.com", // Added backend itself for safety
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [])
 ];
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) or if origin is in whitelist
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -43,13 +43,11 @@ const corsOptions: cors.CorsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200 // Responds with 200 instead of 204 for preflight success
+  optionsSuccessStatus: 200 
 };
 
-// Apply CORS to all routes
+// Apply CORS middleware first
 app.use(cors(corsOptions));
-
-// Explicitly handle all preflight (OPTIONS) requests globally
 app.options("*", cors(corsOptions));
 
 // 3. REMAINING MIDDLEWARE
@@ -63,13 +61,13 @@ app.use("/api/public/doctors", publicDoctorRoutes);
 app.use("/api/public/settings", publicSettingsRoutes);
 app.use("/api/appointments", appointmentRoutes); 
 
+// Admin routes - ensure adminAuthRoutes handles '/login'
 app.use("/admin", adminAuthRoutes); 
 app.use("/admin/test", adminTestRoutes);
 app.use("/admin/settings", adminSettingsRoutes);
 app.use("/admin/doctors", adminDoctorRoutes); 
 app.use("/admin/management", adminManagementRoutes);
 
-// 5. ERROR HANDLING (Must be at the bottom)
 app.use(errorHandler);
 
 export default app;
