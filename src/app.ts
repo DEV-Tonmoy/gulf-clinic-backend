@@ -75,7 +75,9 @@ app.use("/api/appointments", appointmentRoutes);
 // ==========================================
 // ADMIN ROUTES
 // ==========================================
-app.use("/admin/auth", adminAuthRoutes);
+// FIX: Using "/admin" instead of "/admin/auth" so that frontend calls to 
+// /admin/login and /admin/logout work correctly.
+app.use("/admin", adminAuthRoutes); 
 app.use("/admin/test", adminTestRoutes);
 app.use("/admin/settings", adminSettingsRoutes);
 app.use("/admin/doctors", adminDoctorRoutes); 
