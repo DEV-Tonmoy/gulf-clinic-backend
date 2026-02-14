@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Admin } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { signAdminToken } from "../utils/jwt";
 
@@ -8,19 +8,20 @@ const LOCK_TIME_MS = 30 * 60 * 1000; // 30 minutes
 
 export class AuthService {
   async login(email: string, password: string) {
-    const admin = await prisma.admin.findUnique({
+    const admin: Admin | null = await prisma.admin.findUnique({
       where: { email },
     });
 
     if (!admin || !admin.isActive) {
-      throw { status: 401, message: "Invalid credentials" };
+      const error: any = new Error("Invalid credentials");
+      error.status = 401;
+      throw error;
     }
 
     if (admin.lockedUntil && admin.lockedUntil > new Date()) {
-      throw {
-        status: 423,
-        message: "Account temporarily locked. Try again later.",
-      };
+      const error: any = new Error("Account temporarily locked. Try again later.");
+      error.status = 423;
+      throw error;
     }
 
     const passwordMatch = await bcrypt.compare(password, admin.passwordHash);
@@ -38,7 +39,9 @@ export class AuthService {
         data: updateData,
       });
 
-      throw { status: 401, message: "Invalid credentials" };
+      const error: any = new Error("Invalid credentials");
+      error.status = 401;
+      throw error;
     }
 
     await prisma.admin.update({
@@ -49,7 +52,6 @@ export class AuthService {
       },
     });
 
-    // FIXED: Added admin.role as the second argument
     const token = signAdminToken(admin.id, admin.role);
     return { token };
   }
@@ -58,12 +60,16 @@ export class AuthService {
     const admin = await prisma.admin.findUnique({ where: { id: adminId } });
 
     if (!admin) {
-      throw { status: 404, message: "Admin not found" };
+      const error: any = new Error("Admin not found");
+      error.status = 404;
+      throw error;
     }
 
     const isMatch = await bcrypt.compare(oldPass, admin.passwordHash);
     if (!isMatch) {
-      throw { status: 400, message: "Current password incorrect" };
+      const error: any = new Error("Current password incorrect");
+      error.status = 400;
+      throw error;
     }
 
     const newHash = await bcrypt.hash(newPass, 12);
