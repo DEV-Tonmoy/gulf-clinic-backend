@@ -32,8 +32,7 @@ const allowedOrigins = [
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [])
 ];
 
-// FIXED: Explicitly typed the CORS callback to pass TS7006
-app.use(cors({
+const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     if (!origin) return callback(null, true);
 
@@ -50,8 +49,15 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PATCH", "DELETE", "PUT", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200 // Essential for older browsers/preflight success
+};
+
+// 1. Apply CORS for all standard requests
+app.use(cors(corsOptions));
+
+// 2. NEW: Explicitly handle PREFLIGHT (OPTIONS) requests for all routes
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
