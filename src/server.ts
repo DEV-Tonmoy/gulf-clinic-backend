@@ -1,8 +1,10 @@
 import app from "./app";
+import adminSettingsRoutes from "./routes/admin.settings.routes";
 
-// Railway provides the PORT environment variable automatically.
-// We use 4000 as a local fallback.
 const PORT = process.env.PORT || 4000;
+
+// Register Settings Routes
+app.use('/api/admin/settings', adminSettingsRoutes);
 
 app.listen(PORT, () => {
   console.log(`=========================================`);

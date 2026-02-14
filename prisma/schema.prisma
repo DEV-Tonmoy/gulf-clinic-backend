@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // The pooled URL (Port 6543)
+  directUrl = env("DIRECT_URL")     // The direct URL (Port 5432)
 }
 
 // =========================
@@ -12,15 +13,15 @@ datasource db {
 // =========================
 
 model Doctor {
-  id           String   @id @default(uuid())
-  name         String
-  specialty    String
-  image        String?  // URL for their photo
-  bio          String?  // Short description
-  isActive     Boolean  @default(true)
+  id          String   @id @default(uuid())
+  name        String
+  specialty   String
+  image       String?  // URL for their photo
+  bio         String?  // Short description
+  isActive    Boolean  @default(true)
   
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // A doctor can have many appointments
   appointments AppointmentRequest[]
@@ -31,19 +32,19 @@ model Doctor {
 // =========================
 
 model AppointmentRequest {
-  id            String            @id @default(uuid())
-  fullName      String
-  phone         String
-  email         String?
-  message       String?
-  preferredDate DateTime?
-  status        AppointmentStatus @default(NEW)
-  adminNotes    String?
-  createdAt     DateTime          @default(now())
+  id             String            @id @default(uuid())
+  fullName       String
+  phone          String
+  email          String?
+  message        String?
+  preferredDate  DateTime?
+  status         AppointmentStatus @default(NEW)
+  adminNotes     String?
+  createdAt      DateTime          @default(now())
 
   // Link to a specific doctor
-  doctorId      String?
-  doctor        Doctor?            @relation(fields: [doctorId], references: [id])
+  doctorId       String?
+  doctor         Doctor?            @relation(fields: [doctorId], references: [id])
 }
 
 // =========================
@@ -69,20 +70,20 @@ model ClinicSettings {
 // =========================
 
 model Admin {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  passwordHash        String
-  role                AdminRole @default(ADMIN)
-  isActive            Boolean   @default(true)
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  passwordHash         String
+  role                 AdminRole @default(ADMIN)
+  isActive             Boolean   @default(true)
 
   // Login security
-  failedLoginAttempts Int       @default(0)
-  lockedUntil         DateTime?
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  activityLogs        AdminActivityLog[]
+  activityLogs         AdminActivityLog[]
 }
 
 // =========================
