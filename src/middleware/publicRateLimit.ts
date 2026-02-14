@@ -15,8 +15,9 @@ export function publicIntakeRateLimit(
   res: Response,
   next: NextFunction
 ) {
-  const ip = req.ip || req.headers["x-forwarded-for"]?.toString() || "unknown";
-  const now = Date.now();
+  // Explicitly typing the variables to avoid 'any' type errors
+  const ip: string = req.ip || (req.headers["x-forwarded-for"] as string) || "unknown";
+  const now: number = Date.now();
   const record = intakeAttempts.get(ip);
 
   if (!record || (now - record.firstAttemptAt > WINDOW_MS)) {
