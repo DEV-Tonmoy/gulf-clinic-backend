@@ -1,15 +1,11 @@
-import { Router } from 'express';
+import express, { Request, Response } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { prisma } from '../lib/prisma';
 
-const router = Router();
+const router = express.Router();
 
-/**
- * GET /admin/stats
- * Provides dashboard metrics and auth verification.
- */
-router.get('/stats', async (req, res) => {
-    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+router.get('/stats', async (req: Request, res: Response) => {
+    const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
     
     if (!token) return res.status(401).json({ success: false, authenticated: false });
 
@@ -26,7 +22,6 @@ router.get('/stats', async (req, res) => {
             where: { createdAt: { gte: todayStart } }
         });
 
-        // This line caused the error; now it works after Step 1
         const aiHandled = await prisma.appointmentRequest.count({
             where: { isAi: true }
         });
@@ -54,10 +49,7 @@ router.get('/stats', async (req, res) => {
     }
 });
 
-/**
- * GET /admin/appointments
- */
-router.get('/appointments', async (req, res) => {
+router.get('/appointments', async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
         const appointments = await prisma.appointmentRequest.findMany({
@@ -76,10 +68,7 @@ router.get('/appointments', async (req, res) => {
     }
 });
 
-/**
- * PATCH /admin/appointments/:id
- */
-router.patch('/appointments/:id', async (req, res) => {
+router.patch('/appointments/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -93,10 +82,7 @@ router.patch('/appointments/:id', async (req, res) => {
     }
 });
 
-/**
- * DELETE /admin/appointments/:id
- */
-router.delete('/appointments/:id', async (req, res) => {
+router.delete('/appointments/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         await prisma.appointmentRequest.delete({ where: { id } });

@@ -1,13 +1,12 @@
-import { Router } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { adminAuth } from '../middleware/adminAuth';
 import { authorizeRole } from '../middleware/authorizeRole'; 
 import { AdminRole } from '@prisma/client';
 import { z } from 'zod';
-// If this logger doesn't exist yet, we can comment out the log line
 import { logAdminActivity } from '../utils/adminActivityLogger';
 
-const router = Router();
+const router = express.Router();
 
 const settingsUpdateSchema = z.object({
   clinicName: z.string().min(2).optional(),
@@ -19,8 +18,7 @@ const settingsUpdateSchema = z.object({
   sheetsEnabled: z.boolean().optional(),
 });
 
-// GET Settings
-router.get('/', adminAuth, async (req, res) => {
+router.get('/', adminAuth, async (req: Request, res: Response) => {
   try {
     const settings = await prisma.clinicSettings.findUnique({
       where: { id: 'singleton' },
@@ -31,8 +29,7 @@ router.get('/', adminAuth, async (req, res) => {
   }
 });
 
-// PATCH Settings (Restricted to SUPER_ADMIN)
-router.patch('/', adminAuth, authorizeRole([AdminRole.SUPER_ADMIN]), async (req, res, next) => {
+router.patch('/', adminAuth, authorizeRole([AdminRole.SUPER_ADMIN]), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedData = settingsUpdateSchema.parse(req.body);
     const admin = (req as any).admin;
@@ -42,7 +39,6 @@ router.patch('/', adminAuth, authorizeRole([AdminRole.SUPER_ADMIN]), async (req,
       data: validatedData,
     });
 
-    // Optional: Log activity
     await logAdminActivity({
       adminId: admin.id,
       action: `SETTINGS_UPDATED`,
