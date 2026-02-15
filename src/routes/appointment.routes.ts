@@ -52,7 +52,6 @@ router.post("/", async (req: Request, res: Response) => {
 /**
  * ADMIN: Dashboard Statistics
  * Path: GET /api/appointments/stats
- * FIX: Wrapped response in 'stats' key to match DashboardHome.tsx expectations
  */
 router.get(
   "/stats",
@@ -75,7 +74,6 @@ router.get(
 /**
  * ADMIN: Fetch All Appointments
  * Path: GET /api/appointments/list
- * FIX: Wrapped response in 'success' and 'data' keys to match AppointmentList.tsx
  */
 router.get(
   "/list",
@@ -90,10 +88,11 @@ router.get(
 
       const result = await appointmentService.getAllAppointments(page, limit, status, search);
       
+      // FIX: Changed 'result.meta' to 'result.pagination' to match the Service's return type
       res.json({
         success: true,
         data: result.data,
-        meta: result.meta
+        pagination: result.pagination
       });
     } catch (error) {
       next(error);
