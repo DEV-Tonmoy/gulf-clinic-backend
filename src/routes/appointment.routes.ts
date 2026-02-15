@@ -9,14 +9,14 @@ const router = Router();
 
 /**
  * PUBLIC: Create Appointment Request
- * Triggered by the Email Booking Form on the landing page
+ * Path: POST /api/appointments
  */
-router.post("/appointments", async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
-    // 1. Check if the clinic has enabled email bookings
+    // 1. Check if the clinic has enabled email bookings (Keep logic for client control)
     const settings = await prisma.clinicSettings.findUnique({ where: { id: 'singleton' } });
     
-    if (!settings?.emailEnabled) {
+    if (!settings || !settings.emailEnabled) {
       return res.status(403).json({ 
         success: false, 
         message: "Online booking is currently disabled. Please contact us via WhatsApp." 
@@ -44,12 +44,15 @@ router.post("/appointments", async (req: Request, res: Response) => {
 
     res.json({ success: true, message: "Booking request submitted!", data: newRequest });
   } catch (error) {
+    console.error("Booking error:", error);
     res.status(500).json({ success: false, message: "Submission failed" });
   }
 });
 
 /**
  * ADMIN: Dashboard Statistics
+ * Path: GET /api/appointments/stats
+ * FIX: Wrapped response in 'stats' key to match DashboardHome.tsx expectations
  */
 router.get(
   "/stats",
@@ -59,7 +62,8 @@ router.get(
     try {
       const stats = await appointmentService.getDashboardStats();
       res.json({ 
-        ...stats, 
+        success: true,
+        stats: stats, // Frontend expects response.data.stats
         admin: (req as any).admin 
       });
     } catch (error) {
@@ -70,9 +74,11 @@ router.get(
 
 /**
  * ADMIN: Fetch All Appointments
+ * Path: GET /api/appointments/list
+ * FIX: Wrapped response in 'success' and 'data' keys to match AppointmentList.tsx
  */
 router.get(
-  "/appointments",
+  "/list",
   requireAdmin,
   authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -83,7 +89,12 @@ router.get(
       const search = req.query.search as string | undefined;
 
       const result = await appointmentService.getAllAppointments(page, limit, status, search);
-      res.json(result);
+      
+      res.json({
+        success: true,
+        data: result.data,
+        meta: result.meta
+      });
     } catch (error) {
       next(error);
     }
