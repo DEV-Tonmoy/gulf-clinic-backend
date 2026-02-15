@@ -52,6 +52,7 @@ router.post("/", async (req: Request, res: Response) => {
 /**
  * ADMIN: Dashboard Statistics
  * Path: GET /api/appointments/stats
+ * FIX: Removed double-wrapping. appointmentService already returns { success: true, stats: { ... } }
  */
 router.get(
   "/stats",
@@ -59,12 +60,9 @@ router.get(
   authorizeRole([AdminRole.ADMIN, AdminRole.SUPER_ADMIN]),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const stats = await appointmentService.getDashboardStats();
-      res.json({ 
-        success: true,
-        stats: stats, // Frontend expects response.data.stats
-        admin: (req as any).admin 
-      });
+      const result = await appointmentService.getDashboardStats();
+      // 'result' already contains the 'success' and 'stats' keys from the service
+      res.json(result); 
     } catch (error) {
       next(error);
     }
@@ -88,7 +86,7 @@ router.get(
 
       const result = await appointmentService.getAllAppointments(page, limit, status, search);
       
-      // FIX: Changed 'result.meta' to 'result.pagination' to match the Service's return type
+      // Corrected to use 'pagination' to match Service return type
       res.json({
         success: true,
         data: result.data,
