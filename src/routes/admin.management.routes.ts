@@ -38,7 +38,6 @@ router.patch("/appointments/:id/status", requireAdmin, async (req: express.Reque
 // 4. Delete Appointment (Restricted to SUPER_ADMIN)
 router.delete("/appointments/:id", requireAdmin, async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   try {
-    // Audit check: Only Super Admin can delete
     if ((req as any).admin?.role !== "SUPER_ADMIN") {
       return res.status(403).json({ message: "Only Super Admins can delete records" });
     }

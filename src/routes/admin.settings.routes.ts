@@ -23,6 +23,19 @@ router.get('/', adminAuth, async (req: Request, res: Response) => {
     const settings = await prisma.clinicSettings.findUnique({
       where: { id: 'singleton' },
     });
+    
+    if (!settings) {
+      return res.json({ 
+        success: true, 
+        data: {
+          id: 'singleton',
+          clinicName: 'Gulf Clinic',
+          emailEnabled: false,
+          aiEnabled: false,
+          sheetsEnabled: false
+        } 
+      });
+    }
     res.json({ success: true, data: settings });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch settings" });
@@ -34,9 +47,14 @@ router.patch('/', adminAuth, authorizeRole([AdminRole.SUPER_ADMIN]), async (req:
     const validatedData = settingsUpdateSchema.parse(req.body);
     const admin = (req as any).admin;
 
-    const updatedSettings = await prisma.clinicSettings.update({
+    const updatedSettings = await prisma.clinicSettings.upsert({
       where: { id: 'singleton' },
-      data: validatedData,
+      update: validatedData,
+      create: {
+        id: 'singleton',
+        ...validatedData,
+        clinicName: validatedData.clinicName || 'Gulf Clinic'
+      },
     });
 
     await logAdminActivity({

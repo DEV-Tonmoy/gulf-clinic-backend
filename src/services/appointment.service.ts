@@ -3,7 +3,6 @@ import { isValidStatusTransition } from "../utils/appointmentStatusRules";
 
 const prisma = new PrismaClient();
 
-// Type for the validated data coming from your Zod schema
 export interface CreateAppointmentInput {
   fullName: string;
   phone: string;
@@ -128,41 +127,37 @@ export class AppointmentService {
     });
   }
 
-  // 6. Get Dashboard Stats
+  // 6. Get Dashboard Stats (SYNCED WITH FRONTEND)
   async getDashboardStats() {
-    const [totalAppointments, statusCounts, recentLogs] = await Promise.all([
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [total, newToday, aiHandled, closedCount] = await Promise.all([
       prisma.appointmentRequest.count(),
-      prisma.appointmentRequest.groupBy({
-        by: ['status'],
-        _count: { _all: true }
+      prisma.appointmentRequest.count({ 
+        where: { createdAt: { gte: startOfToday } } 
       }),
-      prisma.adminActivityLog.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          admin: {
-            select: { email: true, role: true }
-          }
-        }
+      prisma.appointmentRequest.count({ 
+        where: { isAi: true } 
+      }),
+      prisma.appointmentRequest.count({ 
+        where: { status: 'CLOSED' } 
       })
     ]);
 
-    const stats: Record<string, number> = {
-      NEW: 0,
-      CONTACTED: 0,
-      CLOSED: 0
-    };
-    
-    statusCounts.forEach(item => {
-      if (item.status) {
-        stats[item.status] = item._count._all;
-      }
-    });
+    // Calculate conversion rate (Closed / Total)
+    const conversionRate = total > 0 
+      ? Math.round((closedCount / total) * 100) 
+      : 0;
 
     return {
-      total: totalAppointments,
-      byStatus: stats,
-      recentActivity: recentLogs
+      success: true,
+      stats: {
+        total,
+        newToday,
+        aiHandled,
+        conversionRate: `${conversionRate}%`
+      }
     };
   }
 }
